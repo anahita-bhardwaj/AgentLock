@@ -1,0 +1,4 @@
+rules:
+  read_file: allow
+  write_file: deny
+  network_access: ask

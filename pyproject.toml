@@ -7,9 +7,14 @@ name = "agentlock"
 version = "0.1.0"
 description = "An open-source security sandbox for AI agents."
 requires-python = ">=3.13"
-dependencies = [
-    "typer>=0.27,<1.0"
-]
+
+default: deny
+
+rules:
+  read_file: allow
+  write_file: deny
+  network_access: ask
+
 
 [tool.setuptools.packages.find]
 include = ["agentlock*"]
