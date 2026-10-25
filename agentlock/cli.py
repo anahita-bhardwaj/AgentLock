@@ -19,8 +19,9 @@ def version():
     typer.echo("AgentLock v0.1.0")
 
 
+
 @app.command()
-def run(command: str):
+def run(command: list[str] = typer.Argument(..., help="Program and its arguments")):
     """Run a command inside AgentLock."""
     result = execute(command)
 
@@ -31,6 +32,7 @@ def run(command: str):
         typer.echo(result.stderr, err=True, nl=False)
 
     raise typer.Exit(code=result.returncode)
+
 
 @app.command()
 def check(action: str):

@@ -1,11 +1,19 @@
+
 import subprocess
 
 
-def execute(command: str) -> subprocess.CompletedProcess[str]:
-    """Execute a command and return the completed process."""
+def execute(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Execute a program with arguments without invoking a shell."""
+    if not args or not all(isinstance(arg, str) for arg in args):
+        raise ValueError("args must be a non-empty list of strings.")
+
+    if not args[0].strip():
+        raise ValueError("The executable name cannot be empty.")
+
     return subprocess.run(
-        command,
-        shell=True,
+        args,
+        shell=False,
         capture_output=True,
         text=True,
+        check=False,
     )
