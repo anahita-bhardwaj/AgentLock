@@ -38,6 +38,7 @@ def test_check_denies_unknown_action():
 
 
 
+
 def test_run_blocks_denied_action():
     result = runner.invoke(
         app,
@@ -45,7 +46,7 @@ def test_run_blocks_denied_action():
     )
 
     assert result.exit_code == 1
-    assert "write_file: deny" in result.stdout
+    assert "arbitrary commands are disabled" in result.stderr
     assert "should-not-run" not in result.stdout
 
 
@@ -56,8 +57,7 @@ def test_run_blocks_action_requiring_approval():
     )
 
     assert result.exit_code == 1
-    assert "network_access: ask" in result.stdout
-    assert "approval is not implemented" in result.stderr
+    assert "arbitrary commands are disabled" in result.stderr
     assert "should-not-run" not in result.stdout
 
 
@@ -67,9 +67,10 @@ def test_run_executes_allowed_action():
         ["run", "read_file", "--", "cmd", "/c", "echo", "hello"],
     )
 
-    assert result.exit_code == 0
-    assert "read_file: allow" in result.stdout
-    assert "hello" in result.stdout
+    assert result.exit_code == 1
+    assert "arbitrary commands are disabled" in result.stderr
+    assert "hello" not in result.stdout
+
 
 
 def test_read_file_command_reads_file_in_workspace(tmp_path, monkeypatch):
@@ -101,3 +102,14 @@ def test_read_file_command_blocks_path_outside_workspace(
     assert "read_file: allow" in result.stdout
     assert "must remain inside the workspace" in result.stderr
     assert "Secret outside content" not in result.stdout
+
+
+def test_run_cannot_use_read_file_policy_for_arbitrary_command():
+    result = runner.invoke(
+        app,
+        ["run", "read_file", "--", "cmd", "/c", "echo", "arbitrary-command"],
+    )
+
+    assert result.exit_code != 0
+    assert "arbitrary-command" not in result.stdout
+

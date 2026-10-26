@@ -50,6 +50,7 @@ def version():
 
 
 
+
 @app.command()
 def run(
     action: str,
@@ -58,17 +59,14 @@ def run(
         help="Program and its arguments",
     ),
 ):
-    """Check policy, then run a command if allowed."""
-    require_allowed_action(action)
-    result = execute(command)
+    """Arbitrary command execution is disabled for security."""
+    typer.echo(
+        "Execution blocked: arbitrary commands are disabled. "
+        "Use a dedicated AgentLock capability instead.",
+        err=True,
+    )
+    raise typer.Exit(code=1)
 
-    if result.stdout:
-        typer.echo(result.stdout, nl=False)
-
-    if result.stderr:
-        typer.echo(result.stderr, err=True, nl=False)
-
-    raise typer.Exit(code=result.returncode)
 
 
 
