@@ -75,7 +75,12 @@ def run(
 @app.command()
 def check(action: str):
     """Check the policy decision for an action."""
-    policy = load_policy("policies/default.yaml")
+    policy_path = (
+        Path(__file__).resolve().parent.parent
+        / "policies"
+        / "default.yaml"
+    )
+    policy = load_policy(str(policy_path))
     decision = policy.evaluate(action)
 
     typer.echo(f"{action}: {decision.value}")
