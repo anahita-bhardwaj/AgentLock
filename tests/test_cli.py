@@ -4,6 +4,8 @@ from typer.testing import CliRunner
 from agentlock.cli import app
 
 
+
+
 runner = CliRunner()
 
 
@@ -68,3 +70,34 @@ def test_run_executes_allowed_action():
     assert result.exit_code == 0
     assert "read_file: allow" in result.stdout
     assert "hello" in result.stdout
+
+
+def test_read_file_command_reads_file_in_workspace(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    test_file = tmp_path / "hello.txt"
+    test_file.write_text("Hello from AgentLock!", encoding="utf-8")
+
+    result = runner.invoke(app, ["read-file", "hello.txt"])
+
+    assert result.exit_code == 0
+    assert "read_file: allow" in result.stdout
+    assert "Hello from AgentLock!" in result.stdout
+
+
+def test_read_file_command_blocks_path_outside_workspace(
+    tmp_path, monkeypatch
+):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_text("Secret outside content", encoding="utf-8")
+
+    monkeypatch.chdir(workspace)
+
+    result = runner.invoke(app, ["read-file", "../outside.txt"])
+
+    assert result.exit_code == 1
+    assert "read_file: allow" in result.stdout
+    assert "must remain inside the workspace" in result.stderr
+    assert "Secret outside content" not in result.stdout

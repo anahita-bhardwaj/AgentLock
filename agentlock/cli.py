@@ -3,13 +3,21 @@ import typer
 from agentlock.executor import execute
 from agentlock.policy import Decision
 from agentlock.policy_loader import load_policy
+from pathlib import Path
+from agentlock.file_operations import read_file
 
 app = typer.Typer()
 
 
+
 def require_allowed_action(action: str) -> None:
     """Exit unless the policy explicitly allows the action."""
-    policy = load_policy("policies/default.yaml")
+    policy_path = (
+        Path(__file__).resolve().parent.parent
+        / "policies"
+        / "default.yaml"
+    )
+    policy = load_policy(str(policy_path))
     decision = policy.evaluate(action)
 
     typer.echo(f"{action}: {decision.value}")
@@ -25,6 +33,7 @@ def require_allowed_action(action: str) -> None:
             typer.echo("Execution blocked by policy.", err=True)
 
         raise typer.Exit(code=1)
+
 
 
 @app.callback()
@@ -73,6 +82,22 @@ def check(action: str):
 
     if decision == Decision.DENY:
         raise typer.Exit(code=1)
+
+
+@app.command("read-file")
+def read_file_command(path: str):
+    """Read a file within the AgentLock workspace if policy allows."""
+    require_allowed_action("read_file")
+
+    workspace = Path.cwd()
+    try:
+        content = read_file(path, workspace)
+    except (ValueError, OSError, UnicodeError) as exc:
+        typer.echo(f"File read failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(content, nl=False)
+
 
 if __name__ == "__main__":
     app()
