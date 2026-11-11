@@ -1,0 +1,71 @@
+
+from pathlib import Path
+
+import pytest
+
+from agentlock.file_writer import write_file
+
+
+def test_write_file_inside_workspace(tmp_path: Path):
+    write_file("hello.txt", "Hello, AgentLock!", tmp_path)
+
+    result = tmp_path / "hello.txt"
+    assert result.read_text(encoding="utf-8") == "Hello, AgentLock!"
+
+
+def test_write_file_rejects_path_outside_workspace(tmp_path: Path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    with pytest.raises(ValueError, match="inside the workspace"):
+        write_file("../outside.txt", "Should not be written", workspace)
+
+    assert not (tmp_path / "outside.txt").exists()
+
+
+def test_write_file_rejects_directory(tmp_path: Path):
+    directory = tmp_path / "folder"
+    directory.mkdir()
+
+    with pytest.raises(ValueError, match="regular file"):
+        write_file("folder", "Should not be written", tmp_path)
+
+
+def test_write_file_overwrites_existing_file(tmp_path: Path):
+    test_file = tmp_path / "hello.txt"
+    test_file.write_text("Original content", encoding="utf-8")
+
+    write_file("hello.txt", "Updated content", tmp_path)
+
+    assert test_file.read_text(encoding="utf-8") == "Updated content"
+
+
+def test_write_file_rejects_relative_path_traversal(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_file = tmp_path / "outside.txt"
+
+    with pytest.raises(ValueError, match="inside the workspace"):
+        write_file("../outside.txt", "malicious content", workspace)
+
+    assert not outside_file.exists()
+
+def test_write_file_rejects_symlink_outside_workspace(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_text("original content", encoding="utf-8")
+
+    linked_file = workspace / "linked.txt"
+
+    try:
+        linked_file.symlink_to(outside_file)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symbolic links are not available on this system.")
+
+    with pytest.raises(ValueError, match="inside the workspace"):
+        write_file("linked.txt", "malicious content", workspace)
+
+    assert outside_file.read_text(encoding="utf-8") == "original content"

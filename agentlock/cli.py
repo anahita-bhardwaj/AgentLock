@@ -5,18 +5,25 @@ from agentlock.policy import Decision
 from agentlock.policy_loader import load_policy
 from pathlib import Path
 from agentlock.file_operations import read_file
+from agentlock.file_writer import write_file
 
 app = typer.Typer()
 
 
 
-def require_allowed_action(action: str) -> None:
+
+def require_allowed_action(
+    action: str,
+    policy_path: Path | None = None,
+) -> None:
     """Exit unless the policy explicitly allows the action."""
-    policy_path = (
-        Path(__file__).resolve().parent.parent
-        / "policies"
-        / "default.yaml"
-    )
+    if policy_path is None:
+        policy_path = (
+            Path(__file__).resolve().parent.parent
+            / "policies"
+            / "default.yaml"
+        )
+
     policy = load_policy(str(policy_path))
     decision = policy.evaluate(action)
 
@@ -33,6 +40,7 @@ def require_allowed_action(action: str) -> None:
             typer.echo("Execution blocked by policy.", err=True)
 
         raise typer.Exit(code=1)
+
 
 
 
@@ -100,6 +108,22 @@ def read_file_command(path: str):
         raise typer.Exit(code=1) from exc
 
     typer.echo(content, nl=False)
+
+
+@app.command("write-file")
+def write_file_command(path: str, content: str):
+    """Write text to a file within the AgentLock workspace if policy allows."""
+    require_allowed_action("write_file")
+
+    workspace = Path.cwd()
+    try:
+        write_file(path, content, workspace)
+    except (ValueError, OSError, UnicodeError) as exc:
+        typer.echo(f"File write failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"File written successfully: {path}")
+
 
 
 if __name__ == "__main__":

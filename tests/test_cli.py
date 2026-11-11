@@ -6,6 +6,7 @@ from agentlock.cli import app
 
 
 
+
 runner = CliRunner()
 
 
@@ -113,3 +114,43 @@ def test_run_cannot_use_read_file_policy_for_arbitrary_command():
     assert result.exit_code != 0
     assert "arbitrary-command" not in result.stdout
 
+
+def test_write_file_command_blocks_when_policy_denies(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["write-file", "blocked.txt", "This should not be written"],
+    )
+
+    assert result.exit_code == 1
+    assert "write_file: deny" in result.stdout
+    assert not (tmp_path / "blocked.txt").exists()
+
+
+def test_write_file_command_rejects_path_outside_workspace(
+    tmp_path, monkeypatch
+):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    monkeypatch.chdir(workspace)
+
+    result = runner.invoke(
+        app,
+        ["write-file", "../outside.txt", "This should not be written"],
+    )
+
+    assert result.exit_code == 1
+    assert "write_file: deny" in result.stdout
+    assert not (tmp_path / "outside.txt").exists()
+
+
+def test_write_file_command_requires_content():
+    result = runner.invoke(
+        app,
+        ["write-file", "hello.txt"],
+    )
+
+    assert result.exit_code != 0

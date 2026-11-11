@@ -1,3 +1,5 @@
+default: deny
+
 rules:
   read_file: allow
   write_file: deny
