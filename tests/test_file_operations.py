@@ -55,3 +55,23 @@ def test_read_file_rejects_symlink_outside_workspace(tmp_path: Path):
 
     with pytest.raises(ValueError, match="Symbolic links are not allowed"):
         read_file("linked.txt", workspace)
+
+def test_read_file_rejects_symlinked_parent_directory(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_dir = tmp_path / "outside"
+    outside_dir.mkdir()
+
+    outside_file = outside_dir / "secret.txt"
+    outside_file.write_text("secret data", encoding="utf-8")
+
+    link = workspace / "linked_dir"
+
+    try:
+        link.symlink_to(outside_dir, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks are not supported on this system.")
+
+    with pytest.raises(ValueError, match="Symbolic links are not allowed"):
+        read_file("linked_dir/secret.txt", workspace)

@@ -33,8 +33,6 @@ def test_check_denies_unknown_action():
     assert "unknown_action: deny" in result.stdout
 
 
-
-
 def test_run_blocks_denied_action():
     result = runner.invoke(
         app,
@@ -68,13 +66,15 @@ def test_run_executes_allowed_action():
     assert "hello" not in result.stdout
 
 
-
 def test_read_file_command_reads_file_in_workspace(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     test_file = tmp_path / "hello.txt"
     test_file.write_text("Hello from AgentLock!", encoding="utf-8")
 
-    result = runner.invoke(app, ["read-file", "hello.txt"])
+    result = runner.invoke(
+    app,
+    ["read-file", "hello.txt", "--workspace", str(tmp_path)],
+)
 
     assert result.exit_code == 0
     assert "read_file: allow" in result.stdout
@@ -92,7 +92,15 @@ def test_read_file_command_blocks_path_outside_workspace(
 
     monkeypatch.chdir(workspace)
 
-    result = runner.invoke(app, ["read-file", "../outside.txt"])
+    result = runner.invoke(
+        app,
+        [
+            "read-file",
+            "../outside.txt",
+            "--workspace",
+            str(workspace),
+        ],
+)
 
     assert result.exit_code == 1
     assert "read_file: allow" in result.stdout
@@ -116,9 +124,15 @@ def test_write_file_command_blocks_when_policy_denies(
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
-        app,
-        ["write-file", "blocked.txt", "This should not be written"],
-    )
+    app,
+    [
+        "write-file",
+        "blocked.txt",
+        "This should not be written",
+        "--workspace",
+        str(tmp_path),
+    ],
+)
 
     assert result.exit_code == 1
     assert "write_file: deny" in result.stdout
@@ -133,9 +147,15 @@ def test_write_file_command_rejects_path_outside_workspace(
     monkeypatch.chdir(workspace)
 
     result = runner.invoke(
-        app,
-        ["write-file", "../outside.txt", "This should not be written"],
-    )
+    app,
+    [
+        "write-file",
+        "../outside.txt",
+        "This should not be written",
+        "--workspace",
+        str(workspace),
+    ],
+)
 
     assert result.exit_code == 1
     assert "write_file: deny" in result.stdout
@@ -175,9 +195,15 @@ def test_write_file_command_allows_authorized_write(
     )
 
     result = runner.invoke(
-        app,
-        ["write-file", "hello.txt", "AgentLock authorized this write."],
-    )
+    app,
+    [
+        "write-file",
+        "hello.txt",
+        "AgentLock authorized this write.",
+        "--workspace",
+        str(workspace),
+    ],
+)
 
     assert result.exit_code == 0
     assert (workspace / "hello.txt").read_text(encoding="utf-8") == (

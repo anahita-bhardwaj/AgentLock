@@ -1,6 +1,4 @@
-
 from pathlib import Path
-
 
 def read_file(path: str, workspace: Path) -> str:
     """Read a file contained within the designated workspace."""

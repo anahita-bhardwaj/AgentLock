@@ -76,8 +76,6 @@ def run(
     raise typer.Exit(code=1)
 
 
-
-
 @app.command()
 def check(action: str):
     """Check the policy decision for an action."""
@@ -96,11 +94,22 @@ def check(action: str):
 
 
 @app.command("read-file")
-def read_file_command(path: str):
-    """Read a file within the AgentLock workspace if policy allows."""
+def read_file_command(
+    path: str,
+    workspace: Path = typer.Option(
+        ...,
+        "--workspace",
+        "-w",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+        help="The authorized workspace directory.",
+    ),
+):
+    """Read a file within the configured AgentLock workspace."""
     require_allowed_action("read_file")
 
-    workspace = Path.cwd()
     try:
         content = read_file(path, workspace)
     except (ValueError, OSError, UnicodeError) as exc:
@@ -111,11 +120,23 @@ def read_file_command(path: str):
 
 
 @app.command("write-file")
-def write_file_command(path: str, content: str):
-    """Write text to a file within the AgentLock workspace if policy allows."""
+def write_file_command(
+    path: str,
+    content: str,
+    workspace: Path = typer.Option(
+        ...,
+        "--workspace",
+        "-w",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+        help="The authorized workspace directory.",
+    ),
+):
+    """Write a file within the configured AgentLock workspace."""
     require_allowed_action("write_file")
 
-    workspace = Path.cwd()
     try:
         write_file(path, content, workspace)
     except (ValueError, OSError, UnicodeError) as exc:
