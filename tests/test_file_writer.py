@@ -58,14 +58,14 @@ def test_write_file_rejects_symlink_outside_workspace(tmp_path):
     outside_file = tmp_path / "outside.txt"
     outside_file.write_text("original content", encoding="utf-8")
 
-    linked_file = workspace / "linked.txt"
+    link = workspace / "link.txt"
 
     try:
-        linked_file.symlink_to(outside_file)
+        link.symlink_to(outside_file)
     except (OSError, NotImplementedError):
-        pytest.skip("Symbolic links are not available on this system.")
+        pytest.skip("Symlinks are not supported on this system.")
 
-    with pytest.raises(ValueError, match="inside the workspace"):
-        write_file("linked.txt", "malicious content", workspace)
+    with pytest.raises(ValueError, match="Symbolic links are not allowed"):
+        write_file("link.txt", "malicious content", workspace)
 
     assert outside_file.read_text(encoding="utf-8") == "original content"

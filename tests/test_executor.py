@@ -1,13 +1,13 @@
 import pytest
-
+import sys
 from agentlock.executor import execute
 
 
 def test_execute_success():
-    result = execute(["cmd", "/c", "echo", "hello"])
+    result = execute([sys.executable, "-c", "print('hello')"])
 
     assert result.returncode == 0
-    assert "hello" in result.stdout
+    assert "hello" in result.stdout.lower()
 
 
 def test_execute_failure():
