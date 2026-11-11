@@ -69,3 +69,46 @@ def test_write_file_rejects_symlink_outside_workspace(tmp_path):
         write_file("link.txt", "malicious content", workspace)
 
     assert outside_file.read_text(encoding="utf-8") == "original content"
+
+
+def test_write_file_rejects_symlinked_parent_directory(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_dir = tmp_path / "outside"
+    outside_dir.mkdir()
+
+    outside_file = outside_dir / "secret.txt"
+    outside_file.write_text("original content", encoding="utf-8")
+
+    link = workspace / "linked_dir"
+
+    try:
+        link.symlink_to(outside_dir, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks are not supported on this system.")
+
+    with pytest.raises(ValueError, match="Symbolic links are not allowed"):
+        write_file(
+            "linked_dir/secret.txt",
+            "malicious content",
+            workspace,
+        )
+
+    assert outside_file.read_text(encoding="utf-8") == "original content"
+
+
+def test_write_file_rejects_absolute_path_outside_workspace(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_file = tmp_path / "outside.txt"
+
+    with pytest.raises(ValueError, match="inside the workspace"):
+        write_file(
+            str(outside_file),
+            "malicious content",
+            workspace,
+        )
+
+    assert not outside_file.exists()
