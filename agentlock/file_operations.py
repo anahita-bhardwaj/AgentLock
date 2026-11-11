@@ -10,6 +10,15 @@ def read_file(path: str, workspace: Path) -> str:
     if not requested_path.is_absolute():
         requested_path = workspace / requested_path
 
+    # Reject symbolic links in the requested path.
+    current = requested_path
+
+    while current != workspace and current != current.parent:
+        if current.is_symlink():
+            raise ValueError("Symbolic links are not allowed.")
+
+        current = current.parent
+
     resolved_path = requested_path.resolve()
 
     try:

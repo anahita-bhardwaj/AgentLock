@@ -37,3 +37,21 @@ def test_read_file_rejects_directory(tmp_path: Path):
 
     with pytest.raises(ValueError, match="regular file"):
         read_file("folder", tmp_path)
+
+
+def test_read_file_rejects_symlink_outside_workspace(tmp_path: Path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_text("Sensitive information", encoding="utf-8")
+
+    symlink = workspace / "linked.txt"
+
+    try:
+        symlink.symlink_to(outside_file)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symbolic link creation is not permitted.")
+
+    with pytest.raises(ValueError, match="Symbolic links are not allowed"):
+        read_file("linked.txt", workspace)
