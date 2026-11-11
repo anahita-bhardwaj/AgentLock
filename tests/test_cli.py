@@ -1,11 +1,6 @@
-
 from typer.testing import CliRunner
-
 from agentlock.cli import app
-
-
-
-
+from pathlib import Path
 
 runner = CliRunner()
 
@@ -154,3 +149,37 @@ def test_write_file_command_requires_content():
     )
 
     assert result.exit_code != 0
+
+def test_write_file_command_allows_authorized_write(
+    tmp_path, monkeypatch
+):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    monkeypatch.chdir(workspace)
+
+    policy_file = tmp_path / "allow-write.yaml"
+    policy_file.write_text(
+        "default: deny\nrules:\n  write_file: allow\n",
+        encoding="utf-8",
+    )
+
+    import agentlock.cli as cli
+
+    original_require = cli.require_allowed_action
+
+    def test_policy_check(action):
+        original_require(action, policy_file)
+
+    monkeypatch.setattr(
+        cli, "require_allowed_action", test_policy_check
+    )
+
+    result = runner.invoke(
+        app,
+        ["write-file", "hello.txt", "AgentLock authorized this write."],
+    )
+
+    assert result.exit_code == 0
+    assert (workspace / "hello.txt").read_text(encoding="utf-8") == (
+        "AgentLock authorized this write."
+    )
